@@ -26,26 +26,6 @@ function buildActions(rows: Record<string, unknown>[]) {
   return { boost, kill, reply };
 }
 
-// Build a placeholder suggestion from topic war data (top performer)
-function buildSuggestion(topicWar: Record<string, unknown>[]) {
-  const sorted = [...topicWar].sort(
-    (a, b) => (Number(b.vs_baseline_pct) || 0) - (Number(a.vs_baseline_pct) || 0)
-  );
-  const top = sorted[0];
-  if (!top) {
-    return {
-      topic_to_double_down: '暂无数据',
-      reason: '暂无足够数据生成建议。',
-      proof_tweets: [],
-    };
-  }
-  return {
-    topic_to_double_down: String(top.topic ?? ''),
-    reason: `本周该话题 ER 比账号 30 天基线高 ${top.vs_baseline_pct}%，发帖 ${top.posts_7d} 条。建议加码该类内容。`,
-    proof_tweets: [],
-  };
-}
-
 export default async function Home() {
   const [kpi, topicWar, actionRows] = await Promise.all([
     fetchKPI(),
@@ -54,7 +34,6 @@ export default async function Home() {
   ]);
 
   const actions = buildActions(actionRows as Record<string, unknown>[]);
-  const suggestion = buildSuggestion(topicWar as Record<string, unknown>[]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
@@ -111,7 +90,7 @@ export default async function Home() {
 
         <section className="flex gap-4 items-start">
           <TopicWarChart data={topicWar as unknown as Parameters<typeof TopicWarChart>[0]['data']} />
-          <ClaudeSuggestion data={suggestion} />
+          <ClaudeSuggestion />
         </section>
 
         <section>

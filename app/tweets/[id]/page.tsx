@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { HistoryChart } from '@/components/dashboard/HistoryChart';
+import { ReplyGenButton } from '@/components/dashboard/ReplyGenButton';
 import { fetchTweetDetail } from '@/lib/queries';
 
 export const dynamic = 'force-dynamic';
@@ -134,6 +135,9 @@ export default async function TweetDetail({
           </h2>
           <HistoryChart history={history} />
         </div>
+
+        {/* Reply template generator */}
+        <ReplyGenButton tweetId={id} />
 
         {/* Tweet ID */}
         <p className="text-xs text-slate-700 font-mono">tweet_id: {id}</p>

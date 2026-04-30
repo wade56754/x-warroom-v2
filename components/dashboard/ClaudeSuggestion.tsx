@@ -1,42 +1,73 @@
+"use client";
+
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 
-interface SuggestionData {
-  topic_to_double_down: string;
-  reason: string;
-  proof_tweets: string[];
-}
+type FetchState =
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'done'; text: string };
 
-export function ClaudeSuggestion({ data }: { data: SuggestionData }) {
+export function ClaudeSuggestion() {
+  const [state, setState] = useState<FetchState>({ status: 'loading' });
+
+  function load() {
+    setState({ status: 'loading' });
+    fetch('/api/claude/suggest')
+      .then((r) => r.json())
+      .then((data: { text?: string; error?: string }) => {
+        if (data.error) setState({ status: 'error', message: data.error });
+        else setState({ status: 'done', text: data.text ?? '' });
+      })
+      .catch((e: unknown) =>
+        setState({ status: 'error', message: String(e) })
+      );
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/claude/suggest')
+      .then((r) => r.json())
+      .then((data: { text?: string; error?: string }) => {
+        if (cancelled) return;
+        if (data.error) setState({ status: 'error', message: data.error });
+        else setState({ status: 'done', text: data.text ?? '' });
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setState({ status: 'error', message: String(e) });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <Card className="bg-slate-900 border-slate-800 w-80 shrink-0">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-slate-400">Claude 建议</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div>
-          <p className="text-xs text-slate-500 mb-1">建议加码话题</p>
-          <Badge className="bg-green-900 text-green-300 hover:bg-green-900 text-sm font-medium">
-            {data.topic_to_double_down}
-          </Badge>
-        </div>
-        <p className="text-sm text-slate-300 leading-relaxed">{data.reason}</p>
-        <div>
-          <p className="text-xs text-slate-500 mb-2">实证推文</p>
-          <div className="space-y-1">
-            {data.proof_tweets.map((id) => (
-              <a
-                key={id}
-                href={`https://x.com/wadezone/status/${id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block text-xs text-blue-400 hover:text-blue-300 font-mono truncate"
-              >
-                /{id}
-              </a>
-            ))}
+        {state.status === 'loading' && (
+          <div className="space-y-2">
+            <div className="h-3 bg-slate-800 rounded animate-pulse w-full" />
+            <div className="h-3 bg-slate-800 rounded animate-pulse w-4/5" />
+            <div className="h-3 bg-slate-800 rounded animate-pulse w-3/5" />
           </div>
-        </div>
+        )}
+        {state.status === 'error' && (
+          <div className="space-y-2">
+            <p className="text-xs text-amber-400 leading-relaxed">{state.message}</p>
+            <button
+              onClick={load}
+              className="text-xs text-slate-400 hover:text-slate-200 underline transition-colors"
+            >
+              重试
+            </button>
+          </div>
+        )}
+        {state.status === 'done' && (
+          <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{state.text}</p>
+        )}
         <div className="pt-2 border-t border-slate-800">
           <p className="text-xs text-slate-600">基于 30 天账号基线 · 真实数据</p>
         </div>
