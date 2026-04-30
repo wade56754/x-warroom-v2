@@ -1,6 +1,7 @@
 // OpenAI-compatible LLM client. Defaults to deepai.wang (NewAPI gateway).
-// Uses raw fetch — the OpenAI SDK auto-rewrites max_tokens → max_completion_tokens
-// for "reasoning" models, which deepai.wang's gpt-5.x endpoints reject.
+// Uses raw fetch + manual SSE parsing — deepai.wang always returns SSE for
+// gpt-5.x even when stream:false; the OpenAI SDK would also rewrite
+// max_tokens → max_completion_tokens, which deepai rejects.
 
 const DEFAULT_BASE_URL = 'https://api.deepai.wang/v1';
 export const MODEL = process.env.LLM_MODEL ?? 'gpt-5.4';
@@ -23,6 +24,7 @@ export async function callLLM(prompt: string, maxTokens: number): Promise<string
     body: JSON.stringify({
       model: MODEL,
       max_tokens: maxTokens,
+      stream: true,
       messages: [{ role: 'user', content: prompt }],
     }),
   });
@@ -32,10 +34,28 @@ export async function callLLM(prompt: string, maxTokens: number): Promise<string
     throw new Error(`LLM ${res.status}: ${body.slice(0, 500)}`);
   }
 
-  const data = (await res.json()) as {
-    choices?: { message?: { content?: string } }[];
-  };
-  return data.choices?.[0]?.message?.content ?? '';
+  const raw = await res.text();
+  const chunks: string[] = [];
+
+  for (const line of raw.split('\n')) {
+    if (!line.startsWith('data:')) continue;
+    const payload = line.slice(5).trim();
+    if (!payload || payload === '[DONE]') continue;
+    try {
+      const obj = JSON.parse(payload) as {
+        choices?: { delta?: { content?: string }; message?: { content?: string } }[];
+      };
+      const piece =
+        obj.choices?.[0]?.delta?.content ??
+        obj.choices?.[0]?.message?.content ??
+        '';
+      if (piece) chunks.push(piece);
+    } catch {
+      // skip malformed frame
+    }
+  }
+
+  return chunks.join('');
 }
 
 // 选题建议 prompt（基于 KPI / topic_war / actions 数据）
