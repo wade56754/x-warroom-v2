@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getClient, buildReplyPrompt, MODEL } from '@/lib/claude';
+import { callLLM, hasApiKey, buildReplyPrompt, MODEL } from '@/lib/claude';
 import { fetchTweetDetail } from '@/lib/queries';
 
 export async function GET(request: Request) {
@@ -10,10 +10,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: '缺少 tweet_id 参数' }, { status: 400 });
   }
 
-  const client = getClient();
-  if (!client) {
+  if (!hasApiKey()) {
     return NextResponse.json(
-      { error: 'ANTHROPIC_API_KEY 未配置，请在 .env.local 设置' },
+      { error: 'LLM_API_KEY 未配置，请在 .env.local 设置' },
       { status: 503 }
     );
   }
@@ -32,17 +31,7 @@ export async function GET(request: Request) {
     };
 
     const prompt = buildReplyPrompt(tweet);
-
-    const response = await client.messages.create({
-      model: MODEL,
-      max_tokens: 400,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const text = response.content
-      .filter((c) => c.type === 'text')
-      .map((c) => (c as { type: 'text'; text: string }).text)
-      .join('');
+    const text = await callLLM(prompt, 400);
 
     return NextResponse.json({ text, model: MODEL });
   } catch (err: unknown) {

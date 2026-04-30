@@ -1,12 +1,42 @@
-import Anthropic from '@anthropic-ai/sdk';
+// OpenAI-compatible LLM client. Defaults to deepai.wang (NewAPI gateway).
+// Uses raw fetch — the OpenAI SDK auto-rewrites max_tokens → max_completion_tokens
+// for "reasoning" models, which deepai.wang's gpt-5.x endpoints reject.
 
-export function getClient(): Anthropic | null {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return null;
-  return new Anthropic({ apiKey: key });
+const DEFAULT_BASE_URL = 'https://api.deepai.wang/v1';
+export const MODEL = process.env.LLM_MODEL ?? 'gpt-5.4';
+
+export function hasApiKey(): boolean {
+  return Boolean(process.env.LLM_API_KEY);
 }
 
-export const MODEL = 'claude-sonnet-4-5-20250929';
+export async function callLLM(prompt: string, maxTokens: number): Promise<string> {
+  const key = process.env.LLM_API_KEY;
+  if (!key) throw new Error('LLM_API_KEY not set');
+  const baseUrl = (process.env.LLM_BASE_URL ?? DEFAULT_BASE_URL).replace(/\/$/, '');
+
+  const res = await fetch(`${baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: maxTokens,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`LLM ${res.status}: ${body.slice(0, 500)}`);
+  }
+
+  const data = (await res.json()) as {
+    choices?: { message?: { content?: string } }[];
+  };
+  return data.choices?.[0]?.message?.content ?? '';
+}
 
 // 选题建议 prompt（基于 KPI / topic_war / actions 数据）
 export function buildSuggestPrompt(data: {
