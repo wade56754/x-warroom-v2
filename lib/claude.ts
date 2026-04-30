@@ -25,7 +25,11 @@ export async function callLLM(prompt: string, maxTokens: number): Promise<string
       model: MODEL,
       max_tokens: maxTokens,
       stream: true,
-      messages: [{ role: 'user', content: prompt }],
+      // deepai gpt-5.x rejects certain prompts in `messages` with
+      // "Instructions are required". Routing the prompt through the
+      // Responses-API `instructions` field works for all shapes.
+      instructions: prompt,
+      messages: [{ role: 'user', content: '请按上述要求执行。' }],
     }),
   });
 
