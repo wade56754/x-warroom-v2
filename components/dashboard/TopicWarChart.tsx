@@ -1,7 +1,6 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { topicWar } from '@/lib/mock-data';
 import {
   ResponsiveContainer,
   BarChart,
@@ -13,15 +12,23 @@ import {
   ReferenceLine,
 } from 'recharts';
 
+interface TopicRow {
+  topic: string;
+  posts_7d: number;
+  median_er_7d: number;
+  vs_baseline_pct: number;
+  trend?: string;
+}
+
 function getBarColor(vs: number) {
   if (vs > 20) return '#22c55e';
   if (vs < -20) return '#ef4444';
   return '#64748b';
 }
 
-const sorted = [...topicWar].sort((a, b) => b.vs_baseline_pct - a.vs_baseline_pct);
+export function TopicWarChart({ data }: { data: TopicRow[] }) {
+  const sorted = [...data].sort((a, b) => b.vs_baseline_pct - a.vs_baseline_pct);
 
-export function TopicWarChart() {
   return (
     <Card className="bg-slate-900 border-slate-800 flex-1" style={{ minWidth: 0 }}>
       <CardHeader className="pb-2">

@@ -1,8 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { claudeSuggestion } from '@/lib/mock-data';
 
-export function ClaudeSuggestion() {
+interface SuggestionData {
+  topic_to_double_down: string;
+  reason: string;
+  proof_tweets: string[];
+}
+
+export function ClaudeSuggestion({ data }: { data: SuggestionData }) {
   return (
     <Card className="bg-slate-900 border-slate-800 w-80 shrink-0">
       <CardHeader className="pb-2">
@@ -12,14 +17,14 @@ export function ClaudeSuggestion() {
         <div>
           <p className="text-xs text-slate-500 mb-1">建议加码话题</p>
           <Badge className="bg-green-900 text-green-300 hover:bg-green-900 text-sm font-medium">
-            {claudeSuggestion.topic_to_double_down}
+            {data.topic_to_double_down}
           </Badge>
         </div>
-        <p className="text-sm text-slate-300 leading-relaxed">{claudeSuggestion.reason}</p>
+        <p className="text-sm text-slate-300 leading-relaxed">{data.reason}</p>
         <div>
           <p className="text-xs text-slate-500 mb-2">实证推文</p>
           <div className="space-y-1">
-            {claudeSuggestion.proof_tweets.map((id) => (
+            {data.proof_tweets.map((id) => (
               <a
                 key={id}
                 href={`https://x.com/wadezone/status/${id}`}
@@ -33,7 +38,7 @@ export function ClaudeSuggestion() {
           </div>
         </div>
         <div className="pt-2 border-t border-slate-800">
-          <p className="text-xs text-slate-600">基于 30 天账号基线 · 全假数据 demo</p>
+          <p className="text-xs text-slate-600">基于 30 天账号基线 · 真实数据</p>
         </div>
       </CardContent>
     </Card>
