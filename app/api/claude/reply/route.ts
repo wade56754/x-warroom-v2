@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
-import { callLLM, hasApiKey, buildReplyPrompt, MODEL } from '@/lib/claude';
+import { callLLM, hasApiKey, buildReplyPrompt } from '@/lib/claude';
+
+// gpt-5.4 (the suggest default) rejects certain Wade-style reply prompts as
+// promo content; gpt-5.4-mini accepts them.
+const REPLY_MODEL = 'gpt-5.4-mini';
 import { fetchTweetDetail } from '@/lib/queries';
 
 export async function GET(request: Request) {
@@ -31,9 +35,9 @@ export async function GET(request: Request) {
     };
 
     const prompt = buildReplyPrompt(tweet);
-    const text = await callLLM(prompt, 400);
+    const text = await callLLM(prompt, 400, REPLY_MODEL);
 
-    return NextResponse.json({ text, model: MODEL });
+    return NextResponse.json({ text, model: REPLY_MODEL });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: message }, { status: 500 });

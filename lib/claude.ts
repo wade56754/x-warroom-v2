@@ -10,7 +10,11 @@ export function hasApiKey(): boolean {
   return Boolean(process.env.LLM_API_KEY);
 }
 
-export async function callLLM(prompt: string, maxTokens: number): Promise<string> {
+export async function callLLM(
+  prompt: string,
+  maxTokens: number,
+  model: string = MODEL
+): Promise<string> {
   const key = process.env.LLM_API_KEY;
   if (!key) throw new Error('LLM_API_KEY not set');
   const baseUrl = (process.env.LLM_BASE_URL ?? DEFAULT_BASE_URL).replace(/\/$/, '');
@@ -22,14 +26,10 @@ export async function callLLM(prompt: string, maxTokens: number): Promise<string
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       max_tokens: maxTokens,
       stream: true,
-      // deepai gpt-5.x rejects certain prompts in `messages` with
-      // "Instructions are required". Routing the prompt through the
-      // Responses-API `instructions` field works for all shapes.
-      instructions: prompt,
-      messages: [{ role: 'user', content: '请按上述要求执行。' }],
+      messages: [{ role: 'user', content: prompt }],
     }),
   });
 
